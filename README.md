@@ -14,6 +14,8 @@ These additional cohorts and data sets are used in this study.
 
 - **Diet Swap**: Qiita study [10704](https://qiita.ucsd.edu/study/description/10704) 
   - A cycle of diets over three weeks (Diet 1, then diet 2, then diet 1)
+- **Time Delay**: Qiita study [10706](https://qiita.ucsd.edu/study/description/10706)
+  - Fecal samples collected after a delay of either 2 or 16 hours
 - **Common Files**: shared and reused data sets
   - `rdp_fold.fa.gz`: the [RDP Gold database](https://sourceforge.net/projects/rdp-classifier/files/RDP_Classifier_TrainingData/) that's [recomended](http://drive5.com/usearch/manual7/uchime_ref.html) for use with UCHIME
   - `Mock_Hot_Lake_Community.aligned.v4.fna`: Expected amplicons from Positive Control samples used at PNNL
