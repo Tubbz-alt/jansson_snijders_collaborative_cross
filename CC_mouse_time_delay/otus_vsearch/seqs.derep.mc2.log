@@ -1,0 +1,12 @@
+vsearch v2.0.2_linux_x86_64, 62.8GB RAM, 48 cores
+vsearch -derep_fulllength /people/bris469/data/CC_mouse_time_delay/split/seqs.fna.gz --sizeout --relabel derep_ --minuniquesize 2 --output seqs.derep.mc2.fna --log seqs.derep.mc2.log 
+Started  Thu Aug 11 18:25:15 2016249089388 nt in 992388 seqs, min 251, max 251, avg 251
+
+285419 unique sequences, avg cluster 3.5, median 1, max 47856
+
+61008 uniques written, 224411 clusters discarded (78.6%)
+
+
+Finished Thu Aug 11 18:25:18 2016
+Elapsed time 00:03
+Max memory 376.7MB
