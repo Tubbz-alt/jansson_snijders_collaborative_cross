@@ -1,0 +1,148 @@
+# Ordinate samples and test for clustering
+#Colin Brislawn, 2016-02-11
+library("ggplot2")
+library("phyloseq")
+library("vegan")
+packageVersion("phyloseq")
+theme_set(theme_bw())
+
+#####
+# Importing data
+
+setwd("/Users/bris469/Google Drive/PNNL projects/Collaborative Cross/colin/CC_mouse_time_delay/otus_vsearch/")
+
+# Import the vsearch .biom (not merged)
+no_meta <- import_biom(file.path('otu_table_w_tax.biom'), file.path('rep_set.tre'))
+no_meta
+
+meta <- import_qiime_sample_data(file.path('../meta.txt'))
+dim(meta)
+# 358 samples
+full <- merge_phyloseq(meta, no_meta)
+full
+
+head(sort(sample_sums(full), F))
+# Min of 15k is still pretty good.
+
+#####
+
+# Rarify, for simplicity.
+set.seed("711")
+full.rar <- rarefy_even_depth(full)
+
+#Choose one normalization method for downstream analysis
+downstream <- full.rar
+
+# Pull out metadata, for ease.
+meta <- as(sample_data(full), "data.frame")
+
+
+########## Explor study design ##########
+table(meta$Strain, meta$Sex) # Sex is balanced between strains.
+table(meta$Strain, meta$Time.delay..hrs.) # Each strain is sampled quickly (2h) and slowly (16h).
+table(meta$Strain, meta$Comment) # Strain==CC042 has male mice held with either 2 or 3 in a cage.  
+table(meta$Cage.Number, meta$Time.delay..hrs.)
+
+# Core study:
+table(meta$Strain, meta$Sex, meta$Time.delay..hrs.)
+
+# We hope to see differances between Strain (and maybe Sex), but not by Time.delay..hrs.
+
+
+# Let's add a category with infor for sex and strain
+meta$SexStrain <- paste(meta$Sex, meta$Strain)
+sample_data(downstream) <- meta
+(downstream@sam_data$Cage.Number)
+
+# Clean up categories in the metadata
+sample_data(downstream)$Time.delay..hrs. <- factor(sample_data(downstream)$Time.delay..hrs.)
+sample_data(downstream)$Cage.Number <- factor(sample_data(downstream)$Cage.Number)
+
+
+
+# Bar plots!
+setwd("/Users/bris469/Google Drive/PNNL projects/Collaborative Cross/colin/CC_mouse_time_delay/phyloseq/overview/")
+list.files()
+
+downstream
+
+# Optionally throw out outlyer samples
+downstream <- prune_samples(!(sample_data(downstream)$X.SampleID %in% c("CC1606.010", "CC1606.014")), downstream)
+downstream
+# If so, go to a new directory for saving graphs without outlyers
+setwd("/Users/bris469/Google Drive/PNNL projects/Collaborative Cross/colin/CC_mouse_time_delay/phyloseq/no_outlyers")
+
+#merged <- merge_samples(downstream, "Source_Building")
+merged <- downstream # Just keep all samples
+
+# merge taxa to reduce complexity, and take the top 12
+#merged.tax6 <- tax_glom(merged, taxrank = "Rank6")
+#merged.tax5 <- tax_glom(merged.tax6, taxrank = "Rank5")
+
+merged.tax2 <- tax_glom(merged, taxrank = "Rank2")
+
+# transform to relative abundance, so the bars go to 100%.
+#merged.tax6.ra <- transform_sample_counts(merged.tax6, function(x) x/sum(x))
+#merged.tax5.ra <- transform_sample_counts(merged.tax5, function(x) x/sum(x))
+merged.tax2.ra <- transform_sample_counts(merged.tax2, function(x) x/sum(x))
+
+
+#merged.tax.top <- prune_taxa(names(sort(taxa_sums(merged.tax5.ra), TRUE))[0:60], merged.tax5.ra)
+merged.tax.top <- prune_taxa(names(sort(taxa_sums(merged.tax2.ra), TRUE))[0:11], merged.tax2.ra)
+sum(taxa_sums(merged.tax.top)) / nsamples(downstream)
+
+
+#plots!
+plot = plot_bar(merged.tax.top, x = "Cage.Number", fill="Rank2") + scale_fill_brewer(palette="Spectral")
+#+ theme(axis.text.x=element_text(angle = 0, hjust = .5))
+plot <- plot + facet_grid(Time.delay..hrs. ~ Sex + Strain, scales = "free")
+plot
+ggsave("barplot.png", plot, scale = 1.4, dpi=150, width=183, height=99, units='mm')
+#
+
+
+
+##### Ordinations
+#
+
+mice.bray = ordinate(downstream, method = "PCoA", distance = "bray")
+#mice.unifrac = ordinate(downstream, method = "NMDS", "unifrac")
+#mice.wunifrac = ordinate(downstream, method = "NMDS", "unifrac", weighted = TRUE)
+#mice.unifrac.pca = ordinate(downstream, method = "PCoA", distance = "unifrac") #similar to qiime's method
+mice.wunifrac.pca = ordinate(downstream, method = "PCoA", "unifrac", weighted = TRUE)
+
+sample_data(downstream)[1:2]
+
+plot <- plot_ordination(downstream, mice.bray, color = "Time.delay..hrs.") +
+theme(legend.position = c(.8, .8))
+plot
+ggsave("bray diet and status.png", scale = 1.5, dpi=200, width=89, height=66, units='mm')
+
+# adonis test on Unifrac distances using whole data set
+
+df = as(sample_data(downstream), "data.frame")
+d = phyloseq::distance(downstream, "bray")
+adonistest = adonis(d ~ Time.delay..hrs. + Sex + Strain, df)
+adonistest # Time deplay is NOT significant, while sex and strain are!
+
+
+# unifrac
+plot <- plot_ordination(downstream, mice.wunifrac.pca, color = "Time.delay..hrs.") +
+	theme(legend.position = c(.2, .2))
+plot
+ggsave("weighted unifrac Time.png", scale = 1.5, dpi=200, width=89, height=66, units='mm')
+
+plot <- plot_ordination(downstream, mice.wunifrac.pca, color = "Time.delay..hrs.", label = "X.SampleID")
+#+ theme(legend.position = c(.6, .3))
+plot
+ggsave("weighted unifrac Time lable.png", scale = 1.5, dpi=200, width=89, height=66, units='mm')
+
+
+######
+# adonis test on Unifrac distances using whole data set
+
+df = as(sample_data(downstream), "data.frame")
+d = phyloseq::distance(downstream, "unifrac", weighted = T)
+adonistest = adonis(d ~ Time.delay..hrs. + Sex + Strain, df)
+adonistest # Time deplay is almost significant 
+
