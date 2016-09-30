@@ -1,6 +1,6 @@
 ## Time delay cohort
 
-MiSeq data from this cohort is available as [study 10704 on Qiita](https://qiita.ucsd.edu/study/description/10704). 
+MiSeq data from this cohort is available as [study 10706 on Qiita](https://qiita.ucsd.edu/study/description/10706).
 
 
 #### File summary
